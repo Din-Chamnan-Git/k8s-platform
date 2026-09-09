@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-k8s-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/Din-Chamnan-Git/infra-k8s.git'
+    targetRevision: HEAD
+    path: k8s-manifests/app-platform
+    directory:
+      recurse: true
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dnan-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

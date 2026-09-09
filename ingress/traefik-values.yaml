@@ -1,0 +1,23 @@
+deployment:
+  replicas: 2
+
+ports:
+  web:
+    hostPort: 80
+  websecure:
+    hostPort: 443
+
+additionalArguments:
+  - "--providers.kubernetesingress.ingressendpoint.publishedservice=ingress-system/traefik"
+
+service:
+  type: ClusterIP
+
+# Prevents warning alerts for container userland checks
+global:
+  checkUserland: false
+
+# Enable the built-in Traefik monitoring dashboard
+ingressRoute:
+  dashboard:
+    enabled: true

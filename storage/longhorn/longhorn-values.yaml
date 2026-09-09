@@ -1,0 +1,17 @@
+# Longhorn Storage Engine Helm Values Configuration
+
+defaultSettings:
+  # Default volume replica count across worker nodes
+  defaultReplicaCount: 2
+  # Automatically set Longhorn as default storage class
+  defaultDataPath: /var/lib/longhorn
+  # Set storage deletion policy
+  pvcDeletionPolicy: Delete
+
+persistence:
+  defaultClass: true
+  defaultClassReplicaCount: 2
+
+# Disable default chart ingress (we manage custom Ingress with Cloudflare TLS)
+ingress:
+  enabled: false

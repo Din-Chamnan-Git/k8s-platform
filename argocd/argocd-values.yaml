@@ -1,0 +1,18 @@
+global:
+  domain: argocd.dnan.tech
+
+server:
+  service:
+    type: ClusterIP
+  insecure: true
+  extraArgs:
+    - --insecure
+
+resourceCustomizations:
+  networking.k8s.io/Ingress:
+    health.lua: |
+      hs = {}
+      hs.status = "Healthy"
+      hs.message = "Ingress routed via Traefik & GCP Load Balancer"
+      return hs
+

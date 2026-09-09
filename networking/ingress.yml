@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portfolio-app-ingress
+  namespace: dnan-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  ingressClassName: traefik # Modern Kubernetes standard
+  tls:
+  - hosts:
+    - "app.dnan.tech"
+    secretName: cloudflare-tls # References your vaulted certificate secret!
+  rules:
+  - host: "app.dnan.tech"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: go-demo-api
+            port:
+              number: 8080

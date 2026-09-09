@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: dnan-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  serviceName: "postgres-svc"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-db
+  template:
+    metadata:
+      labels:
+        app: postgres-db
+    spec:
+      containers:
+        - name: postgres-db
+          image: postgres:15-alpine
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          ports:
+            - containerPort: 5432
+              name: postgres
+          volumeMounts:
+            - name: db-storage
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+      volumes: 
+        - name: db-storage  #at this is where is used the pvc 
+          persistentVolumeClaim:
+            claimName: postgres-pvc

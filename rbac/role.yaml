@@ -1,0 +1,26 @@
+# ==============================================================================
+# RBAC Role Permission Definition
+# ==============================================================================
+# Defines granular permissions inside the 'dnan-prod' namespace following the
+# Principle of Least Privilege. This role grants read-only access to Secrets
+# and ConfigMaps required by backend workloads.
+# ==============================================================================
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-secret-reader-role
+  namespace: dnan-prod
+  labels:
+    app.kubernetes.io/name: app-secret-reader-role
+    environment: production
+rules:
+  # Rule 1: Allow reading Kubernetes Secrets
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+
+  # Rule 2: Allow reading Kubernetes ConfigMaps
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]

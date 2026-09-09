@@ -1,0 +1,119 @@
+# ==============================================================================
+# 1. ClusterSecretStore: Connection to Vault Server
+# ==============================================================================
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      # Dedicated Vault VM (Direct port 8200 access):
+      server: "http://vault.dnan.tech:8200"
+      path: "kv"
+      version: "v2"
+      auth:
+        tokenSecretRef:
+          name: "vault-token"
+          namespace: "external-secrets"
+          key: "token"
+
+---
+# ==============================================================================
+# 2. ExternalSecret: Syncs Vault postgres secrets → native K8s Secret
+# ==============================================================================
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: postgres-secret-sync
+  namespace: dnan-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  refreshInterval: "1m"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: postgres-secret # Must match the name in postgres-statefulset.yaml
+    creationPolicy: Owner
+  data:
+    - secretKey: POSTGRES_DB
+      remoteRef:
+        key: postgres
+        property: POSTGRES_DB
+    - secretKey: POSTGRES_USER
+      remoteRef:
+        key: postgres
+        property: POSTGRES_USER
+    - secretKey: POSTGRES_PASSWORD
+      remoteRef:
+        key: postgres
+        property: POSTGRES_PASSWORD
+
+---
+# ==============================================================================
+# 3. ExternalSecret: Syncs Vault GitHub PAT → GHCR ImagePullSecret in dnan-prod
+# ==============================================================================
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ghcr-secret-sync
+  namespace: dnan-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  refreshInterval: "1m"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: ghcr-secret # Target docker-registry secret for pulling private GHCR images
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: '{"auths":{"ghcr.io":{"username":"{{ .username }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .username .password | b64enc }}"}}}'
+  data:
+    - secretKey: username
+      remoteRef:
+        key: github
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: github
+        property: password
+
+---
+# ==============================================================================
+# 4. ExternalSecret: Syncs Vault Cloudflare SSL Certs → TLS Secret in kube-system
+# ==============================================================================
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: cloudflare-tls-sync
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  refreshInterval: "1m"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: cloudflare-tls
+    creationPolicy: Owner
+    template:
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ .crt }}"
+        tls.key: "{{ .key }}"
+  data:
+    - secretKey: crt
+      remoteRef:
+        key: cloudflare-tls
+        property: tls.crt
+    - secretKey: key
+      remoteRef:
+        key: cloudflare-tls
+        property: tls.key
