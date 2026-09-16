@@ -5,12 +5,13 @@ metadata:
   namespace: dnan-prod
   annotations:
     argocd.argoproj.io/sync-wave: "3"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: traefik # Modern Kubernetes standard
   tls:
   - hosts:
     - "app.dnan.tech"
-    secretName: cloudflare-tls # References your vaulted certificate secret!
+    secretName: cloudflare-tls # Managed automatically by cert-manager
   rules:
   - host: "app.dnan.tech"
     http:

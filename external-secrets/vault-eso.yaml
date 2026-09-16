@@ -8,15 +8,18 @@ metadata:
 spec:
   provider:
     vault:
-      # Dedicated Vault VM (Direct port 8200 access):
-      server: "http://vault.dnan.tech:8200"
-      path: "kv"
+      # Dedicated Vault VM (HTTPS port 8200 access via Let's Encrypt domain):
+      server: "https://vault.dnan.tech:8200"
+      path: "secret"
       version: "v2"
+
       auth:
-        tokenSecretRef:
-          name: "vault-token"
-          namespace: "external-secrets"
-          key: "token"
+        kubernetes:
+          mountPath: "kubernetes"
+          role: "external-secrets-role"
+          serviceAccountRef:
+            name: "external-secrets"
+            namespace: "external-secrets"
 
 ---
 # ==============================================================================
@@ -86,13 +89,13 @@ spec:
 
 ---
 # ==============================================================================
-# 4. ExternalSecret: Syncs Vault Cloudflare SSL Certs → TLS Secret in kube-system
+# 4. ExternalSecret: Syncs Vault GitHub PAT → ArgoCD Repo Secret in argocd
 # ==============================================================================
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: cloudflare-tls-sync
-  namespace: kube-system
+  name: argocd-github-repo-sync
+  namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
@@ -101,19 +104,99 @@ spec:
     name: vault-backend
     kind: ClusterSecretStore
   target:
-    name: cloudflare-tls
+    name: github-repo-k8s-platform
     creationPolicy: Owner
     template:
-      type: kubernetes.io/tls
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
       data:
-        tls.crt: "{{ .crt }}"
-        tls.key: "{{ .key }}"
+        type: "git"
+        url: "https://github.com/Din-Chamnan-Git/k8s-platform.git"
+        username: "{{ .username }}"
+        password: "{{ .password }}"
   data:
-    - secretKey: crt
+    - secretKey: username
       remoteRef:
-        key: cloudflare-tls
-        property: tls.crt
-    - secretKey: key
+        key: github
+        property: username
+    - secretKey: password
       remoteRef:
-        key: cloudflare-tls
-        property: tls.key
+        key: github
+        property: password
+
+---
+# ==============================================================================
+# 5. ExternalSecret: Syncs Vault GitHub PAT → ArgoCD Repo Secret for go-demo-api
+# ==============================================================================
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-github-repo-go-demo-sync
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  refreshInterval: "1m"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: github-repo-go-demo-api
+    creationPolicy: Owner
+    template:
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
+      data:
+        type: "git"
+        url: "https://github.com/Din-Chamnan-Git/go-demo-api.git"
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  data:
+    - secretKey: username
+      remoteRef:
+        key: github
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: github
+        property: password
+
+---
+# ==============================================================================
+# 6. ExternalSecret: Syncs Vault GitHub PAT → ArgoCD Repo Secret for k8s-apps
+# ==============================================================================
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-github-repo-k8s-apps-sync
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  refreshInterval: "1m"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: github-repo-k8s-apps
+    creationPolicy: Owner
+    template:
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repository
+      data:
+        type: "git"
+        url: "https://github.com/Din-Chamnan-Git/k8s-apps.git"
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+  data:
+    - secretKey: username
+      remoteRef:
+        key: github
+        property: username
+    - secretKey: password
+      remoteRef:
+        key: github
+        property: password
