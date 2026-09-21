@@ -8,10 +8,17 @@ metadata:
 spec:
   provider:
     vault:
-      # Dedicated Vault VM (HTTPS port 8200 access via Let's Encrypt domain):
-      server: "https://vault.dnan.tech:8200"
+      # Vault VM is on the same gcp-k8s-vpc (private IP: 10.10.1.5).
+      # Using private IP avoids public DNS lookup and internet routing.
+      # caBundle: Vault self-signed TLS cert so ESO can verify the connection.
+      server: "https://10.10.1.5:8200"
       path: "secret"
       version: "v2"
+      caProvider:
+        type: Secret
+        name: vault-ca-cert
+        namespace: external-secrets
+        key: ca.crt
 
       auth:
         kubernetes:
