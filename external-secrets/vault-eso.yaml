@@ -11,7 +11,7 @@ spec:
       # Vault VM is on the same gcp-k8s-vpc (private IP: 10.10.1.5).
       # Using private IP avoids public DNS lookup and internet routing.
       # caBundle: Vault self-signed TLS cert so ESO can verify the connection.
-      server: "https://10.10.1.5:8200"
+      server: "https://vault.dnan.tech:8200"
       path: "secret"
       version: "v2"
       caProvider:
@@ -83,7 +83,7 @@ spec:
     template:
       type: kubernetes.io/dockerconfigjson
       data:
-        .dockerconfigjson: '{"auths":{"ghcr.io":{"username":"{{ .username }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .username .password | b64enc }}"}}}'
+        .dockerconfigjson: '{"auths":{"ghcr.io":{"username":"{{ .username }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .username .password | b64enc }}"},"registry.dnan.tech":{"username":"{{ .nexus_username }}","password":"{{ .nexus_password }}","auth":"{{ printf "%s:%s" .nexus_username .nexus_password | b64enc }}"}}}'
   data:
     - secretKey: username
       remoteRef:
@@ -92,6 +92,14 @@ spec:
     - secretKey: password
       remoteRef:
         key: github
+        property: password
+    - secretKey: nexus_username
+      remoteRef:
+        key: nexus
+        property: username
+    - secretKey: nexus_password
+      remoteRef:
+        key: nexus
         property: password
 
 ---
